@@ -33,7 +33,7 @@ describe('IRCTC TATKAL BOOKING', () => {
 
     const isValidUpiId = upiRegex.test(UPI_ID);
 
-    cy.get('.h_head1 > .search_btn').click()
+    cy.contains(/login/i, { timeout: 90000 }).should('be.visible').click({ force: true })
     cy.get('input[placeholder="User Name"]').invoke('val', username).trigger('input')
     cy.get('input[placeholder="Password"]').invoke('val', password).trigger('input')
 
