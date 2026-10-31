@@ -31,7 +31,18 @@ jobs:
     - run: |
         sudo timedatectl set-timezone Asia/Kolkata
         pip install -r irctc-captcha-solver/requirements.txt
-        python3 irctc-captcha-solver/app.py "" # python3 irctc-captcha-solver/app.py "" is used for models to load before starting tatkal tickets 
+        nohup python3 irctc-captcha-solver/app-server.py --host 0.0.0.0 --port 5000 > server.log 2>&1 &
+        echo $! > server.pid
+        for i in $(seq 1 24); do
+          if curl -s http://localhost:5000/; then
+            echo "captcha server up"
+            break
+          fi
+          echo "waiting for server... $i"
+          sleep 5
+        done
+        curl -s http://localhost:5000/
+        cat server.log || true
         PASSWORD=$(jq -r '.inputs.PASSWORD' $GITHUB_EVENT_PATH)
         USERNAME=$(jq -r '.inputs.USERNAME' $GITHUB_EVENT_PATH)
         UPI_ID=$(jq -r '.inputs.UPI_ID' $GITHUB_EVENT_PATH)
@@ -44,8 +55,7 @@ jobs:
         echo USERNAME=$USERNAME >> $GITHUB_ENV
         echo UPI_ID=$UPI_ID >> $GITHUB_ENV
 
-
-    # python3 irctc-captcha-solver/app.py "" is used for models to load before starting tatkal tickets 
+    # app-server.py runs the captcha server and preloads models before tatkal booking
 
     - name: Install Node.js and npm
       uses: actions/setup-node@v4
@@ -56,8 +66,3 @@ jobs:
       run: |
         npm install cypress
         npx cypress run --browser chrome --headed --record --key a15b31a6-b9ee-4678-b9ac-f45a190851fe --env UPI_ID=${{ inputs.UPI_ID || '' }},USERNAME=${{ inputs.USERNAME || secrets.USERNAME }},PASSWORD=${{ inputs.PASSWORD || secrets.PASSWORD }}
-
-    # - name: Running IRCTC Cypress Script
-    #   uses: cypress-io/github-action@v6
-    #   with:
-    #     command: npx cypress run --record --key a15b31a6-b9ee-4678-b9ac-f45a190851fe --env UPI_ID=${{ inputs.UPI_ID || '' }},USERNAME=${{ inputs.USERNAME || secrets.USERNAME }},PASSWORD=${{ inputs.PASSWORD || secrets.PASSWORD }}
